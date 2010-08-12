@@ -17,7 +17,7 @@
 package com.twitter.ostrich
 
 import net.lag.extensions._
-import net.lag.logging.{Formatter, Level, Logger, StringHandler}
+import net.lag.logging.{BareFormatter, Level, Logger, StringHandler}
 import org.specs._
 import scala.collection.immutable
 import java.text.SimpleDateFormat
@@ -28,16 +28,13 @@ object W3CStatsSpec extends Specification {
   "w3c Stats" should {
     val logger = Logger.get("w3c")
     logger.setLevel(Level.INFO)
-    val formatter = new Formatter {
-      override def lineTerminator = ""
-      override def dateFormat = new SimpleDateFormat("yyyyMMdd-HH:mm:ss.SSS")
-      override def formatPrefix(level: java.util.logging.Level, date: String, name: String) = name + ": "
-    }
-    val handler = new StringHandler(formatter)
+    val handler = new StringHandler(BareFormatter)
     logger.addHandler(handler)
     logger.setUseParentHandlers(false)
 
     val w3c = new W3CStats(logger, Array("backend-response-time", "backend-response-method", "request-uri", "backend-response-time_ns", "unsupplied-field", "finish_timestamp", "widgets", "wodgets"))
+
+    def getFirstLine() = handler.toString.split("\n").toList.filter(!_.startsWith("#")).first
 
     doBefore {
       Stats.clearAll()
@@ -45,21 +42,22 @@ object W3CStatsSpec extends Specification {
     }
 
     "log and check some timings" in {
-      val response: Int = w3c.time[Int]("backend-response-time") {
-        w3c.log("backend-response-method", "GET")
-        w3c.log("request-uri", "/home")
-        1 + 1
+      w3c.transaction {
+        val response: Int = w3c.time[Int]("backend-response-time") {
+          w3c.log("backend-response-method", "GET")
+          w3c.log("request-uri", "/home")
+          1 + 1
+        }
+        response mustEqual 2
+
+        w3c.log("finish_timestamp", new Date(0))
+
+        val response2: Int = w3c.timeNanos[Int]("backend-response-time_ns") {
+          1 + 2
+        }
+        response2 mustEqual 3
       }
-      response mustEqual 2
-
-      w3c.log("finish_timestamp", new Date(0))
-
-      val response2: Int = w3c.timeNanos[Int]("backend-response-time_ns") {
-        1 + 2
-      }
-      response2 mustEqual 3
-
-      val logline = w3c.log_entry
+      val logline = getFirstLine()
       logline mustNot beNull
 
       val entries: Array[String] = logline.split(" ")
@@ -74,14 +72,17 @@ object W3CStatsSpec extends Specification {
     "map when cleared returns the empty string" in {
       w3c.log("request-uri", "foo")
       w3c.clearAll()
-      val logline = w3c.log_entry
+      val logline = getFirstLine()
       // strip out all unfound entries, and remove all whitespace. after that, it should be empty.
       logline.replaceAll("-", "").trim() mustEqual ""
+      false
     }
 
     "logging a field not tracked in the fields member shouldn't show up in the logfile" in {
       w3c.log("jibberish_nonsense", "foo")
-      w3c.log_entry must notInclude("foo")
+      val logline = getFirstLine()
+      logline must notInclude("foo")
+      false
     }
 
     "handle a transaction" in {
@@ -90,7 +91,9 @@ object W3CStatsSpec extends Specification {
         w3c.log("widgets", 8)
         w3c.log("wodgets", 3)
       }
-      handler.toString.replaceAll(" -", "") mustEqual "w3c: 8 3"
+      val logline = getFirstLine()
+      logline.replaceAll(" ?- ?", "") mustEqual "8 3"
+      false
     }
 
     "sum multiple counts within a transaction" in {
@@ -98,7 +101,9 @@ object W3CStatsSpec extends Specification {
         w3c.log("widgets", 8)
         w3c.log("widgets", 8)
       }
-      handler.toString.replaceAll(" -", "") mustEqual "w3c: 16"
+      val logline = getFirstLine()
+      logline.replaceAll(" ?- ?", "") mustEqual "16"
+      false
     }
 
     "concat multiple string values within a transaction" in {
@@ -106,7 +111,9 @@ object W3CStatsSpec extends Specification {
         w3c.log("widgets", "hello")
         w3c.log("widgets", "kitty")
       }
-      handler.toString.replaceAll(" -", "") mustEqual "w3c: hello,kitty"
+      val logline = getFirstLine()
+      logline.replaceAll(" ?- ?", "") mustEqual "hello,kitty"
+      false
     }
   }
 }

@@ -18,6 +18,7 @@ package com.twitter.ostrich
 
 import net.lag.logging.Logger
 import scala.collection.mutable
+import com.twitter.xrayspecs.Time
 import java.util.Date
 import java.util.zip.CRC32
 import java.net.InetAddress
@@ -87,11 +88,6 @@ class W3CStats(val logger: Logger, val fields: Array[String]) extends StatsProvi
     log_safe(name, ip)
   }
 
-  /**
-   * Returns a w3c logline containing all known fields.
-   */
-  def log_entry: String = reporter.generateLine(fields, get())
-
   def addTiming(name: String, duration: Int): Long = {
     log(name, duration)
     Stats.addTiming(name, duration)
@@ -120,7 +116,9 @@ class W3CStats(val logger: Logger, val fields: Array[String]) extends StatsProvi
     try {
       f
     } finally {
-      logger.info(log_entry)
+      reporter.report(fields, get())
+//      reporter.report(get() ++ fields.map((_, Nil)))
+//      logger.info(log_entry)
     }
   }
 }

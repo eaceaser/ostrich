@@ -53,8 +53,7 @@ class W3CReporter(val logger: Logger) {
    * Write a W3C stats line to the log. If the field names differ from the previously-logged line,
    * a new header block will be written.
    */
-  def report(stats: Map[String, Any]) {
-    val orderedKeys = stats.keys.toList.sort(_ < _)
+  def report(orderedKeys: Iterable[String], stats: Map[String, Any]) {
     val fieldsHeader = orderedKeys.mkString("#Fields: ", " ", "")
     val crc = crc32(fieldsHeader)
     if (crc != previousCrc || Time.now >= nextHeaderDumpAt) {
@@ -63,7 +62,7 @@ class W3CReporter(val logger: Logger) {
     logger.info(generateLine(orderedKeys, stats))
   }
 
-  def generateLine(orderedKeys: Iterable[String], stats: Map[String, Any]) = {
+  private def generateLine(orderedKeys: Iterable[String], stats: Map[String, Any]) = {
     orderedKeys.map { key => stats.get(key).map { stringify(_) }.getOrElse("-") }.mkString(" ")
   }
 
@@ -72,7 +71,7 @@ class W3CReporter(val logger: Logger) {
       Array("#Version: 1.0", "\n",
             "#Date: ", formatter.format(new Date(Time.now.inMilliseconds)), "\n",
             "#CRC: ", crc.toString, "\n",
-            fieldsHeader, "\n").mkString("")
+            fieldsHeader).mkString("")
     logger.info(header)
     previousCrc = crc
     nextHeaderDumpAt = headerRepeatFrequencyInMilliseconds.milliseconds.fromNow

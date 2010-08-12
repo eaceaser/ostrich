@@ -84,15 +84,11 @@ class W3CEntry(val logger: Logger, val fields: Array[String]) extends StatsProvi
   }
 
   /**
-   * Returns a w3c logline containing all known fields.
-   */
-  def log_entry: String = reporter.generateLine(fields, map)
-
-  /**
    * When the execution context is completed, flush it to stable storage.
    */
   def flush() = {
-    logger.info(log_entry)
+    reporter.report(fields, map)
+//    logger.info(log_entry)
     clearAll()
   }
 

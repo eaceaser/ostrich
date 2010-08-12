@@ -61,6 +61,6 @@ class W3CStatsLogger(val logger: Logger, val frequencyInSeconds: Int, includeJvm
       report(key + "_std") = timing.standardDeviation
     }
 
-    reporter.report(report)
+    reporter.report(report.keySet.toList.sort(_ < _), report)
   }
 }

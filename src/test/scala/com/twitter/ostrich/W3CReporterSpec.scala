@@ -48,21 +48,21 @@ object W3CReporterSpec extends Specification {
     }
 
     "log basic stats" in {
-      reporter.report(Map("cats" -> 10, "dogs" -> 9))
+      reporter.report(Seq("cats", "dogs"), Map("cats" -> 10, "dogs" -> 9))
       handler.toString.split("\n").toList mustEqual
         expectedHeader(948200938) ::: "w3c: #Fields: cats dogs" :: "w3c: 10 9" :: Nil
     }
 
     "convert values appropriately" in {
-      reporter.report(Map("date" -> new Date(0), "size" -> (1L << 32), "address" -> InetAddress.getByName("127.0.0.1"), "x" -> new Object))
+      reporter.report(Seq("address", "date", "size", "x"), Map("date" -> new Date(0), "size" -> (1L << 32), "address" -> InetAddress.getByName("127.0.0.1"), "x" -> new Object))
       handler.toString.split("\n").last mustEqual "w3c: 127.0.0.1 01-Jan-1970_00:00:00 4294967296 -"
     }
 
     "not repeat the header too often" in {
-      reporter.report(Map("a" -> 1))
-      reporter.report(Map("a" -> 2))
+      reporter.report(Seq("a"), Map("a" -> 1))
+      reporter.report(Seq("a"), Map("a" -> 2))
       reporter.nextHeaderDumpAt = Time.now
-      reporter.report(Map("a" -> 3))
+      reporter.report(Seq("a"), Map("a" -> 3))
       handler.toString.split("\n").toList mustEqual
         expectedHeader(276919822) :::
         "w3c: #Fields: a" ::
@@ -74,9 +74,9 @@ object W3CReporterSpec extends Specification {
     }
 
     "repeat the header when the fields change" in {
-      reporter.report(Map("a" -> 1))
-      reporter.report(Map("a" -> 2))
-      reporter.report(Map("a" -> 3, "b" -> 1))
+      reporter.report(Seq("a"), Map("a" -> 1))
+      reporter.report(Seq("a"), Map("a" -> 2))
+      reporter.report(Seq("a", "b"), Map("a" -> 3, "b" -> 1))
       handler.toString.split("\n").toList mustEqual
         expectedHeader(276919822) :::
         "w3c: #Fields: a" ::
