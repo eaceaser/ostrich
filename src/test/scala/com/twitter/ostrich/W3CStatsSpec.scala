@@ -42,7 +42,7 @@ object W3CStatsSpec extends Specification {
     }
 
     "log and check some timings" in {
-      w3c.transaction {
+      w3c.transaction { w3c =>
         val response: Int = w3c.time[Int]("backend-response-time") {
           w3c.log("backend-response-method", "GET")
           w3c.log("request-uri", "/home")
@@ -87,7 +87,7 @@ object W3CStatsSpec extends Specification {
 
     "handle a transaction" in {
       w3c.log("request-uri", "foo")
-      w3c.transaction {
+      w3c.transaction { w3c =>
         w3c.log("widgets", 8)
         w3c.log("wodgets", 3)
       }
@@ -97,7 +97,7 @@ object W3CStatsSpec extends Specification {
     }
 
     "sum multiple counts within a transaction" in {
-      w3c.transaction {
+      w3c.transaction { w3c =>
         w3c.log("widgets", 8)
         w3c.log("widgets", 8)
       }
@@ -107,7 +107,7 @@ object W3CStatsSpec extends Specification {
     }
 
     "concat multiple string values within a transaction" in {
-      w3c.transaction {
+      w3c.transaction { w3c =>
         w3c.log("widgets", "hello")
         w3c.log("widgets", "kitty")
       }

@@ -30,7 +30,7 @@ object W3CStresser {
     println("%s Starting to stress our W3C deals".format(new Date()))
     hundredThousand.foreach { i =>
       if (i % 10000 == 0) { println("%s finished our %d'th run".format(new Date(), i)) }
-      w3c.transaction {
+      w3c.transaction { w3c =>
         thousandInts.foreach { j => w3c.addTiming(j.toString, j) }
       }
       handler.clear() // based on our testing, this does not add substantial CPU pressure but reduces memory needs for the test.

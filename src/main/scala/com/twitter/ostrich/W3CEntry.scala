@@ -60,7 +60,7 @@ class W3CEntry(val logger: Logger, val fields: Array[String]) extends StatsProvi
   }
 
   def log(name: String, value: String) {
-    log_safe(name, value)
+    log_safe(name, map.get(name).map(_ + "," + value).getOrElse(value))
   }
 
   /**
