@@ -69,24 +69,7 @@ object W3CStatsSpec extends Specification {
       entries(5) mustEqual "01-Jan-1970_00:00:00"
     }
 
-    "map when cleared returns the empty string" in {
-      w3c.log("request-uri", "foo")
-      w3c.clearAll()
-      val logline = getFirstLine()
-      // strip out all unfound entries, and remove all whitespace. after that, it should be empty.
-      logline.replaceAll("-", "").trim() mustEqual ""
-      false
-    }
-
-    "logging a field not tracked in the fields member shouldn't show up in the logfile" in {
-      w3c.log("jibberish_nonsense", "foo")
-      val logline = getFirstLine()
-      logline must notInclude("foo")
-      false
-    }
-
     "handle a transaction" in {
-      w3c.log("request-uri", "foo")
       w3c.transaction { w3c =>
         w3c.log("widgets", 8)
         w3c.log("wodgets", 3)

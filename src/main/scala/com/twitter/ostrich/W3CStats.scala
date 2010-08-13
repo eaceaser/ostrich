@@ -31,80 +31,11 @@ import java.text.SimpleDateFormat
  *
  * @param fields The fields, in order, as they will appear in the final w3c log output.
  */
-class W3CStats(val logger: Logger, val fields: Array[String]) extends StatsProvider {
+class W3CStats(val logger: Logger, val fields: Array[String]) {
   val log = Logger.get(getClass.getName)
   val reporter = new W3CReporter(logger)
   var complainAboutUnregisteredFields = true
   val fieldNames: Set[String] = Set.empty ++ fields
-
-  /**
-   * Store our map of named events.
-   */
-  private val tl = new ThreadLocal[mutable.Map[String, Any]]() {
-    override def initialValue(): mutable.Map[String, Any] = new mutable.HashMap[String, Any] {
-      override def initialSize = fields.length * 2
-    }
-  }
-
-  /**
-   * Returns the current map containing this thread's w3c logging stats.
-   */
-  def get(): mutable.Map[String, Any] = tl.get()
-
-  /**
-   * Resets this thread's w3c stats knowledge.
-   */
-  def clearAll(): Unit = get().clear()
-
-  /**
-   * Private method to ensure that fields being inserted are actually being tracked, logging an error otherwise.
-   */
-  private def log_safe[T](name: String, value: T) {
-    if (complainAboutUnregisteredFields && !fieldNames.contains(name)) {
-      log.error("trying to log unregistered field: %s".format(name))
-    }
-    get + (name -> value)
-  }
-
-  /**
-   * Adds the current name, value pair to the stats map.
-   */
-  def log(name: String, value: String) {
-    log_safe(name, get.get(name).map(_ + "," + value).getOrElse(value))
-  }
-
-  /**
-   * Adds the current name, timing pair to the stats map.
-   */
-  def log(name: String, timing: Long) {
-    log_safe(name, get.getOrElse(name, 0L).asInstanceOf[Long] + timing)
-  }
-
-  def log(name: String, date: Date) {
-    log_safe(name, date)
-  }
-
-  def log(name: String, ip: InetAddress) {
-    log_safe(name, ip)
-  }
-
-  def addTiming(name: String, duration: Int): Long = {
-    log(name, duration)
-    Stats.addTiming(name, duration)
-  }
-
-  def addTiming(name: String, timingStat: TimingStat): Long = {
-    // can't really w3c these.
-    Stats.addTiming(name, timingStat)
-  }
-
-  def incr(name: String, count: Int) = {
-    log_safe(name, get.getOrElse(name, 0L).asInstanceOf[Long] + count)
-    Stats.incr(name, count)
-  }
-
-  def getCounterStats(reset: Boolean) = Stats.getCounterStats(reset)
-  def getTimingStats(reset: Boolean) = Stats.getTimingStats(reset)
 
   /**
    * Coalesce all w3c events (counters, timings, etc.) that happen in this thread within this

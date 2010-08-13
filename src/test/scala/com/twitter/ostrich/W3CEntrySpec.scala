@@ -45,6 +45,15 @@ object W3CEntrySpec extends Specification {
       w3c.map.size mustEqual 0
     }
 
+    "map when cleared returns the empty string" in {
+      w3c.log("request-uri", "foo")
+      w3c.clearAll()
+      val logline = getFirstLine()
+      // strip out all unfound entries, and remove all whitespace. after that, it should be empty.
+      logline.replaceAll("-", "").trim() mustEqual ""
+      false
+    }
+
     "log and check a single timing" in {
       w3c.addTiming("backend-response-time", 57)
       w3c.flush
