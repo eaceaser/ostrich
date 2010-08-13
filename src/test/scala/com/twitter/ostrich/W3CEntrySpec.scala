@@ -54,6 +54,13 @@ object W3CEntrySpec extends Specification {
       false
     }
 
+    "logging a field not tracked in the fields member shouldn't show up in the logfile" in {
+      w3c.log("jibberish_nonsense", "foo")
+      val logline = getFirstLine()
+      logline must notInclude("foo")
+      false
+    }
+
     "log and check a single timing" in {
       w3c.addTiming("backend-response-time", 57)
       w3c.flush

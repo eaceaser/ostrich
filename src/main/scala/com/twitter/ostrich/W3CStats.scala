@@ -43,14 +43,11 @@ class W3CStats(val logger: Logger, val fields: Array[String]) {
    * that happens within an HTTP request/response cycle, or similar.
    */
   def transaction[T](f: W3CEntry => T): T = {
-//    clearAll()
     val entry = new W3CEntry(logger, fields)
     try {
       f(entry)
     } finally {
       entry.flush()
-//      reporter.report(get() ++ fields.map((_, Nil)))
-//      logger.info(log_entry)
     }
   }
 }
