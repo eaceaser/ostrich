@@ -32,7 +32,7 @@ object W3CEntrySpec extends Specification {
     logger.addHandler(handler)
     logger.setUseParentHandlers(false)
 
-    val w3c = new W3CEntry(logger, Array("backend-response-time", "backend-response-method", "request-uri", "backend-response-time_ns", "unsupplied-field", "finish_timestamp", "widgets", "wodgets"))
+    val w3c = new W3CEntry(new W3CReporter(logger), Array("backend-response-time", "backend-response-method", "request-uri", "backend-response-time_ns", "unsupplied-field", "finish_timestamp", "widgets", "wodgets"))
 
     def getFirstLine() = handler.toString.split("\n").toList.filter(!_.startsWith("#")).first
 

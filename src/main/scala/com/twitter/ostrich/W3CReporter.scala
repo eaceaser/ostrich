@@ -34,8 +34,6 @@ import net.lag.logging.Logger
  * last logged, the header is logged again.
  */
 class W3CReporter(val logger: Logger) {
-  val log = Logger.get(getClass.getName)
-
   /**
    * The W3C header lines will be written out this often, even if the fields haven't changed.
    * (This lets log parsers resynchronize after a failure.)

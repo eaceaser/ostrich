@@ -14,10 +14,9 @@ import java.net.InetAddress
  * @params fields the name of the fields that will be output. If you attempt to write to a column
  *   that doesn't exist, it will not appear in the log.
  */
-class W3CEntry(val logger: Logger, val fields: Array[String]) extends StatsProvider {
-  val log = Logger.get(getClass.getName)
+class W3CEntry(val reporter: W3CReporter, val fields: Array[String]) extends StatsProvider {
+  lazy val log = Logger.get(getClass.getName)
   val fieldNames: Set[String] = Set.empty ++ fields
-  val reporter = new W3CReporter(logger)
 
   protected[ostrich] val map: mutable.Map[String, Any] = new mutable.HashMap[String, Any] {
     override def initialSize = fields.length * 2
@@ -88,7 +87,6 @@ class W3CEntry(val logger: Logger, val fields: Array[String]) extends StatsProvi
    */
   def flush() = {
     reporter.report(fields, map)
-//    logger.info(log_entry)
     clearAll()
   }
 
