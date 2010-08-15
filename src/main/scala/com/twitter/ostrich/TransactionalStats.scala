@@ -31,21 +31,18 @@ import java.text.SimpleDateFormat
  *
  * @param fields The fields, in order, as they will appear in the final w3c log output.
  */
-class W3CStats(val logger: Logger, val fields: Array[String]) {
-  val reporter = new W3CReporter(logger)
-  val fieldNames: Set[String] = Set.empty ++ fields
-
+class TransactionalStats(val reporter: StatsReporter) {
   /**
    * Coalesce all w3c events (counters, timings, etc.) that happen in this thread within this
    * transaction, and log them as a single line at the end. This is useful for logging everything
    * that happens within an HTTP request/response cycle, or similar.
    */
-  def transaction[T](f: W3CEntry => T): T = {
-    val entry = new W3CEntry(reporter, fields)
+  def transaction[T](f: StatsProvider => T): T = {
+    val entry = new ThreadUnsafeStatsCollection
     try {
       f(entry)
     } finally {
-      entry.flush()
+      reporter.report(entry)
     }
   }
 }

@@ -24,7 +24,7 @@ import net.lag.logging.{GenericFormatter, Level, Logger, StringHandler}
 import org.specs._
 
 
-object W3CStatsLoggerSpec extends Specification {
+/*object W3CStatsLoggerSpec extends Specification {
   "W3CStatsLogger" should {
     val logger = Logger.get("w3c")
     logger.setLevel(Level.INFO)
@@ -72,4 +72,4 @@ object W3CStatsLoggerSpec extends Specification {
         "1 3 10 1 10 10 0" :: "1 0 20 1 20 20 0" :: Nil
     }
   }
-}
+} */

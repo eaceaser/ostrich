@@ -22,9 +22,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Concrete StatsProvider that tracks counters and timings.
  */
-class StatsCollection extends StatsProvider {
-  private val counterMap = new mutable.HashMap[String, Counter]()
-  private val timingMap = new ConcurrentHashMap[String, Timing]()
+trait StatsCollection extends StatsProvider {
 
   def addTiming(name: String, duration: Int): Long = {
     getTiming(name).add(duration)
@@ -38,6 +36,119 @@ class StatsCollection extends StatsProvider {
     getCounter(name).value.addAndGet(count)
   }
 
+  def getCounterStats(reset: Boolean): Map[String, Long]
+
+  def getTimingStats(reset: Boolean): Map[String, TimingStat]
+
+  def clearAll()
+
+  /**
+   * Find or create a counter with the given name.
+   */
+  def getCounter(name: String): Counter
+
+  /**
+   * Find or create a timing measurement with the given name.
+   */
+  def getTiming(name: String): Timing
+
+/*  private def internalLog(name: String, value: String) {
+    stupidMap + (name -> value)
+  }
+
+  def log(name: String, value: String) {
+    internalLog(name, value)
+  } */
+
+  /**
+   * For timing work that doesn't fall into one lexical area, you can specify a specific start and end.
+   */
+  /*def startTiming(name: String) {
+    if (map.contains(name)) {
+      log.warning("adding timing for an already timed column")
+    }
+    timingMap += (name -> System.currentTimeMillis)
+  }
+
+  def endTiming(name: String): Unit = timingMap.get(name) match {
+    case None => log.error("endTiming called for name that had no start time: %s", name)
+    case Some(start) => {
+      val startTime = start.asInstanceOf[Long]
+      addTiming(name, (System.currentTimeMillis - startTime).toInt)
+      timingMap -= name
+    }
+  } */
+
+//  def toMap = immutable.Map((getCounterStats(false) ++ getTimingStats(false)).toArray: _*)
+}
+
+class ThreadUnsafeStatsCollection extends StatsCollection {
+  /**
+   * Find or create a counter with the given name.
+   */
+  def getCounter(name: String): Counter = {
+    counterMap.get(name) match {
+      case Some(counter) => counter
+      case None =>
+        val counter = new Counter
+        counterMap += (name -> counter)
+        counter
+    }
+  }
+
+  def getCounterStats(reset: Boolean): Map[String, Long] = {
+    val rv = immutable.HashMap(counterMap.map { case (k, v) => (k, v.value.get) }.toList: _*)
+    if (reset) {
+      for ((k, v) <- counterMap) {
+        v.reset()
+      }
+    }
+    rv
+  }
+
+  def getTimingStats(reset: Boolean): Map[String, TimingStat] = {
+    val out = new mutable.HashMap[String, TimingStat]
+
+    for ((key, timing) <- timingMap) {
+      out += (key -> timing.get(reset))
+    }
+    out
+  }
+
+  def getTiming(name: String): Timing = {
+    timingMap.get(name) match {
+      case Some(timing) => timing
+      case None =>
+        val timing = new Timing
+        timingMap += (name -> timing)
+        timing
+    }
+  }
+
+  def put(key: String, value: String) {
+    stringMap += (key -> value)
+  }
+
+  def clear(key: String) {
+    stringMap -= key
+  }
+
+  def get(key: String) = stringMap.getOrElse(key, "")
+
+  def getVariables(reset: Boolean) = stringMap.readOnly
+
+  def clearAll() = {
+    counterMap.clear()
+    timingMap.clear()
+    stringMap.clear()
+  }
+
+  private val counterMap = new mutable.HashMap[String, Counter]()
+  private val timingMap = new mutable.HashMap[String, Timing]()
+  private val stringMap = new mutable.HashMap[String, String]()
+}
+
+class ThreadSafeStatsCollection extends StatsCollection {
   def getCounterStats(reset: Boolean): Map[String, Long] = {
     val rv = immutable.HashMap(counterMap.map { case (k, v) => (k, v.value.get) }.toList: _*)
     if (reset) {
@@ -56,14 +167,6 @@ class StatsCollection extends StatsProvider {
     out
   }
 
-  def clearAll() {
-    counterMap.synchronized { counterMap.clear() }
-    timingMap.clear()
-  }
-
-  /**
-   * Find or create a counter with the given name.
-   */
   def getCounter(name: String): Counter = counterMap.synchronized {
     counterMap.get(name) match {
       case Some(counter) => counter
@@ -85,4 +188,28 @@ class StatsCollection extends StatsProvider {
     }
     timing
   }
+
+  def clearAll() {
+    counterMap.synchronized { counterMap.clear() }
+    timingMap.clear()
+    stringMap.synchronized { stringMap.clear() }
+  }
+
+  def put(key: String, value: String) = stringMap.synchronized {
+    stringMap += (key -> value)
+  }
+
+  def clear(key: String) = stringMap.synchronized {
+    stringMap -= key
+  }
+
+  def get(key: String) = stringMap.synchronized {
+    stringMap.getOrElse(key, "")
+  }
+
+  def getVariables(reset: Boolean) = stringMap.synchronized { stringMap.clone.readOnly }
+
+  private val counterMap = new mutable.HashMap[String, Counter]()
+  private val timingMap = new ConcurrentHashMap[String, Timing]()
+  private val stringMap = new mutable.HashMap[String, String]()
 }

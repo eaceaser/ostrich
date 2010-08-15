@@ -23,6 +23,7 @@ import scala.collection.immutable
 import java.text.SimpleDateFormat
 import java.util.Date
 
+/*
 
 object W3CEntrySpec extends Specification {
   "w3c entries" should {
@@ -114,4 +115,4 @@ object W3CEntrySpec extends Specification {
       }
     }
   }
-}
+} */

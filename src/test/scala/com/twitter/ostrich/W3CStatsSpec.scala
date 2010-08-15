@@ -24,6 +24,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 
+/*
 object W3CStatsSpec extends Specification {
   "w3c Stats" should {
     val logger = Logger.get("w3c")
@@ -99,4 +100,4 @@ object W3CStatsSpec extends Specification {
       false
     }
   }
-}
+} */

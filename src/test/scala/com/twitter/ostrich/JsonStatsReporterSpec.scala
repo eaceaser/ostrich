@@ -20,11 +20,39 @@ import scala.collection.immutable
 import com.twitter.xrayspecs.Time
 import com.twitter.xrayspecs.TimeConversions._
 import net.lag.extensions._
-import net.lag.logging.{GenericFormatter, Level, Logger, StringHandler}
+import net.lag.logging.{BareFormatter, Level, Logger, StringHandler}
 import org.specs._
+import org.specs.mock.JMocker
 
 
-object JsonStatsLoggerSpec extends Specification {
+object JsonStatsReporterSpec extends Specification with JMocker {
+  "JsonStatsReporter" should {
+    val logger = Logger.get("json")
+    logger.setLevel(Level.INFO)
+
+    val handler = new StringHandler(BareFormatter)
+    logger.addHandler(handler)
+    logger.setUseParentHandlers(false)
+
+    var reporter: JsonStatsReporter = null
+    val collection = mock[StatsCollection]
+
+    doBefore {
+      handler.clear()
+      reporter = new JsonStatsReporter(logger)
+    }
+
+    "log stats to json" in {
+      expect {
+        one(collection).toMap willReturn Map("some" -> 1, "stats" -> 25)
+      }
+      reporter.report(collection)
+      handler.toString mustMatch """"some":1"""
+      handler.toString mustMatch """"stats":25"""
+    }
+  }
+}
+/*object JsonStatsLoggerSpec extends Specification {
   "JsonStatsLogger" should {
     val logger = Logger.get("stats")
     logger.setLevel(Level.INFO)
@@ -66,4 +94,4 @@ object JsonStatsLoggerSpec extends Specification {
       line mustMatch "\"standard_deviation\":7"
     }
   }
-}
+} */

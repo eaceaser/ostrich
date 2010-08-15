@@ -33,7 +33,7 @@ import net.lag.logging.Logger
  * `report`, if the keys in the map have changed, or it's been "a while" since the header was
  * last logged, the header is logged again.
  */
-class W3CReporter(val logger: Logger) {
+class W3CReporter(val logger: Logger, private var keys: Iterable[String]) extends StatsReporter {
   /**
    * The W3C header lines will be written out this often, even if the fields haven't changed.
    * (This lets log parsers resynchronize after a failure.)
@@ -43,21 +43,27 @@ class W3CReporter(val logger: Logger) {
   var nextHeaderDumpAt = Time.now
 
   private var previousCrc = 0L
+  private var crc = crc32(keys.mkString("#Fields: ", " ", ""))
 
   private val formatter = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss")
   formatter.setTimeZone(TimeZone.getTimeZone("GMT+0000"))
+
+  private def fieldsHeader = keys.mkString("#Fields: ", " ", "")
+
+  def setColumns(cols: Iterable[String]) {
+    keys = cols
+    crc = crc32(fieldsHeader)
+  }
 
   /**
    * Write a W3C stats line to the log. If the field names differ from the previously-logged line,
    * a new header block will be written.
    */
-  def report(orderedKeys: Iterable[String], stats: Map[String, Any]) {
-    val fieldsHeader = orderedKeys.mkString("#Fields: ", " ", "")
-    val crc = crc32(fieldsHeader)
+  def report(stats: StatsProvider) {
     if (crc != previousCrc || Time.now >= nextHeaderDumpAt) {
       logHeader(fieldsHeader, crc)
     }
-    logger.info(generateLine(orderedKeys, stats))
+    logger.info(generateLine(keys, stats.toMap))
   }
 
   private def generateLine(orderedKeys: Iterable[String], stats: Map[String, Any]) = {
@@ -82,7 +88,7 @@ class W3CReporter(val logger: Logger) {
   }
 
   private def stringify(value: Any): String = value match {
-    case s: String => s
+    case s: String => s.replaceAll(" ", "_")
     case d: Date => formatter.format(d).replaceAll(" ", "_")
     case l: Long => l.toString()
     case i: Int => i.toString()
