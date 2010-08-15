@@ -28,12 +28,19 @@ import com.twitter.xrayspecs.TimeConversions._
 import net.lag.logging.Logger
 
 
+object W3CReporter {
+  protected val formatter = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss")
+  formatter.setTimeZone(TimeZone.getTimeZone("GMT+0000"))
+}
+
 /**
  * Log "w3c-style" lines to a java logger, using a map of key/value pairs. On each call to
  * `report`, if the keys in the map have changed, or it's been "a while" since the header was
  * last logged, the header is logged again.
  */
 class W3CReporter(val logger: Logger, private var keys: Iterable[String]) extends StatsReporter {
+  import W3CReporter._
+
   /**
    * The W3C header lines will be written out this often, even if the fields haven't changed.
    * (This lets log parsers resynchronize after a failure.)
@@ -44,9 +51,6 @@ class W3CReporter(val logger: Logger, private var keys: Iterable[String]) extend
 
   private var previousCrc = 0L
   private var crc = crc32(keys.mkString("#Fields: ", " ", ""))
-
-  private val formatter = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss")
-  formatter.setTimeZone(TimeZone.getTimeZone("GMT+0000"))
 
   private def fieldsHeader = keys.mkString("#Fields: ", " ", "")
 
