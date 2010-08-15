@@ -36,12 +36,6 @@ trait StatsCollection extends StatsProvider {
     getCounter(name).value.addAndGet(count)
   }
 
-  def getCounterStats(reset: Boolean): Map[String, Long]
-
-  def getTimingStats(reset: Boolean): Map[String, TimingStat]
-
-  def clearAll()
-
   /**
    * Find or create a counter with the given name.
    */
@@ -51,14 +45,6 @@ trait StatsCollection extends StatsProvider {
    * Find or create a timing measurement with the given name.
    */
   def getTiming(name: String): Timing
-
-/*  private def internalLog(name: String, value: String) {
-    stupidMap + (name -> value)
-  }
-
-  def log(name: String, value: String) {
-    internalLog(name, value)
-  } */
 
   /**
    * For timing work that doesn't fall into one lexical area, you can specify a specific start and end.
@@ -78,8 +64,6 @@ trait StatsCollection extends StatsProvider {
       timingMap -= name
     }
   } */
-
-//  def toMap = immutable.Map((getCounterStats(false) ++ getTimingStats(false)).toArray: _*)
 }
 
 class ThreadUnsafeStatsCollection extends StatsCollection {
@@ -125,27 +109,27 @@ class ThreadUnsafeStatsCollection extends StatsCollection {
     }
   }
 
-  def put(key: String, value: String) {
-    stringMap += (key -> value)
+  def putVariable(key: String, value: String) {
+    variableMap += (key -> value)
   }
 
-  def clear(key: String) {
-    stringMap -= key
+  def clearVariable(key: String) {
+    variableMap -= key
   }
 
-  def get(key: String) = stringMap.getOrElse(key, "")
+  def getVariable(key: String) = variableMap.getOrElse(key, "")
 
-  def getVariables(reset: Boolean) = stringMap.readOnly
+  def getVariables(reset: Boolean) = variableMap.readOnly
 
   def clearAll() = {
     counterMap.clear()
     timingMap.clear()
-    stringMap.clear()
+    variableMap.clear()
   }
 
   private val counterMap = new mutable.HashMap[String, Counter]()
   private val timingMap = new mutable.HashMap[String, Timing]()
-  private val stringMap = new mutable.HashMap[String, String]()
+  private val variableMap = new mutable.HashMap[String, String]()
 }
 
 class ThreadSafeStatsCollection extends StatsCollection {
@@ -192,24 +176,24 @@ class ThreadSafeStatsCollection extends StatsCollection {
   def clearAll() {
     counterMap.synchronized { counterMap.clear() }
     timingMap.clear()
-    stringMap.synchronized { stringMap.clear() }
+    variableMap.synchronized { variableMap.clear() }
   }
 
-  def put(key: String, value: String) = stringMap.synchronized {
-    stringMap += (key -> value)
+  def putVariable(key: String, value: String) = variableMap.synchronized {
+    variableMap += (key -> value)
   }
 
-  def clear(key: String) = stringMap.synchronized {
-    stringMap -= key
+  def clearVariable(key: String) = variableMap.synchronized {
+    variableMap -= key
   }
 
-  def get(key: String) = stringMap.synchronized {
-    stringMap.getOrElse(key, "")
+  def getVariable(key: String) = variableMap.synchronized {
+    variableMap.getOrElse(key, "")
   }
 
-  def getVariables(reset: Boolean) = stringMap.synchronized { stringMap.clone.readOnly }
+  def getVariables(reset: Boolean) = variableMap.synchronized { variableMap.clone.readOnly }
 
   private val counterMap = new mutable.HashMap[String, Counter]()
   private val timingMap = new ConcurrentHashMap[String, Timing]()
-  private val stringMap = new mutable.HashMap[String, String]()
+  private val variableMap = new mutable.HashMap[String, String]()
 }

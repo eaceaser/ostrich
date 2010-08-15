@@ -91,9 +91,9 @@ object Stats extends StatsProvider {
     timingSourceList.clear()
   }
 
-  def clear(key: String) = collection.clear(key)
-  def put(key: String, value: String) = collection.put(key, value)
-  def get(key: String) = collection.get(key)
+  def clearVariable(key: String) = collection.clearVariable(key)
+  def putVariable(key: String, value: String) = collection.putVariable(key, value)
+  def getVariable(key: String) = collection.getVariable(key)
   def getVariables(reset: Boolean) = collection.getVariables(reset)
 
   /**

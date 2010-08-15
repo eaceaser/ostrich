@@ -100,9 +100,9 @@ trait StatsProvider {
   def incr(name: String): Long = incr(name, 1)
 
   // arbitrary string key/value store.
-  def put(key: String, value: String): Unit
-  def get(key: String): String
-  def clear(key: String): Unit
+  def putVariable(key: String, value: String): Unit
+  def getVariable(key: String): String
+  def clearVariable(key: String): Unit
 
   /**
    * Returns a map of counters and their current values.
@@ -160,9 +160,9 @@ object DevNullStats extends StatsProvider {
   def incr(name: String, count: Int): Long = count.toLong
   def getCounterStats(reset: Boolean) = immutable.Map.empty
   def getTimingStats(reset: Boolean) = immutable.Map.empty
-  def put(key: String, value: String) = ()
-  def get(key: String): String = ""
+  def putVariable(key: String, value: String) = ()
+  def getVariable(key: String): String = ""
   def getVariables(reset: Boolean) = immutable.Map.empty
-  def clear(key: String) = ()
+  def clearVariable(key: String) = ()
   def clearAll() = ()
 }
