@@ -44,54 +44,12 @@ object JsonStatsReporterSpec extends Specification with JMocker {
 
     "log stats to json" in {
       expect {
-        one(collection).toMap willReturn Map("some" -> 1, "stats" -> 25)
+        one(collection).toMap willReturn Map("some" -> 1, "stats" -> 25, "variables" -> "hello")
       }
       reporter.report(collection)
       handler.toString mustMatch """"some":1"""
       handler.toString mustMatch """"stats":25"""
+      handler.toString mustMatch """"variables":"hello"""
     }
   }
 }
-/*object JsonStatsLoggerSpec extends Specification {
-  "JsonStatsLogger" should {
-    val logger = Logger.get("stats")
-    logger.setLevel(Level.INFO)
-
-    val handler = new StringHandler(new GenericFormatter(""))
-    logger.addHandler(handler)
-    logger.setUseParentHandlers(false)
-
-    var statsLogger: JsonStatsLogger = null
-
-    def getLines() = {
-      handler.toString.split("\n").toList.filter { s => s.startsWith("#Fields") || !s.startsWith("#") }
-    }
-
-    doBefore {
-      Stats.clearAll()
-      handler.clear()
-      statsLogger = new JsonStatsLogger(logger, 1.second)
-    }
-
-    "log basic stats" in {
-      Stats.incr("cats")
-      Stats.incr("dogs", 3)
-      statsLogger.periodic()
-      val line = getLines()(0)
-      line mustMatch "\"cats\":1"
-      line mustMatch "\"dogs\":3"
-    }
-
-    "log timings" in {
-      Time.freeze
-      Stats.time("zzz") { Time.now += 10.milliseconds }
-      Stats.time("zzz") { Time.now += 20.milliseconds }
-      statsLogger.periodic()
-      val line = getLines()(0)
-      line mustMatch "\"zzz\":"
-      line mustMatch "\"average\":15"
-      line mustMatch "\"count\":2"
-      line mustMatch "\"standard_deviation\":7"
-    }
-  }
-} */

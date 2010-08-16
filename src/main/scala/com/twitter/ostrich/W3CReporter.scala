@@ -40,6 +40,7 @@ object W3CReporter {
  */
 class W3CReporter(val logger: Logger, private var keys: Iterable[String]) extends StatsReporter {
   import W3CReporter._
+  private def fieldsHeader = keys.mkString("#Fields: ", " ", "")
 
   /**
    * The W3C header lines will be written out this often, even if the fields haven't changed.
@@ -50,9 +51,7 @@ class W3CReporter(val logger: Logger, private var keys: Iterable[String]) extend
   var nextHeaderDumpAt = Time.now
 
   private var previousCrc = 0L
-  private var crc = crc32(keys.mkString("#Fields: ", " ", ""))
-
-  private def fieldsHeader = keys.mkString("#Fields: ", " ", "")
+  private var crc = crc32(fieldsHeader)
 
   def setColumns(cols: Iterable[String]) {
     keys = cols

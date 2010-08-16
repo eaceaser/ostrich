@@ -44,22 +44,6 @@ object StatsSpec extends Specification {
     }
 
     "timings" in {
-      "empty" in {
-        Stats.addTiming("test", 0)
-        val test = Stats.getTiming("test")
-        test.get(true) mustEqual new TimingStat(1, 0, 0)
-        // the timings list will be empty here:
-        test.get(true) mustEqual new TimingStat(0, 0, 0)
-      }
-
-      "basic min/max/average" in {
-        Stats.addTiming("test", 1)
-        Stats.addTiming("test", 2)
-        Stats.addTiming("test", 3)
-        val test = Stats.getTiming("test")
-        test.get(true) mustEqual new TimingStat(3, 3, 1, Some(Histogram(1, 2, 3)), 2.0, 2.0)
-      }
-
       "report" in {
         var x = 0
         Stats.time("hundred") { for (i <- 0 until 100) x += i }
@@ -68,32 +52,6 @@ object StatsSpec extends Specification {
         timings("hundred").count mustEqual 1
         timings("hundred").minimum mustEqual timings("hundred").average
         timings("hundred").maximum mustEqual timings("hundred").average
-      }
-
-      "average of 0" in {
-        Stats.addTiming("test", 0)
-        val test = Stats.getTiming("test")
-        test.get(true) mustEqual new TimingStat(1, 0, 0)
-      }
-
-      "ignore negative timings" in {
-        Stats.addTiming("test", 1)
-        Stats.addTiming("test", -1)
-        Stats.addTiming("test", Math.MIN_INT)
-        val test = Stats.getTiming("test")
-        test.get(true) mustEqual new TimingStat(1, 1, 1, Some(Histogram(1)), 1.0, 0.0)
-      }
-
-      "boundary timing sizes" in {
-        Stats.addTiming("test", Math.MAX_INT)
-        Stats.addTiming("test", 5)
-        val sum = 5.0 + Math.MAX_INT
-        val avg = sum / 2.0
-        val sumsq = 5.0 * 5.0 + Math.MAX_INT.toDouble * Math.MAX_INT.toDouble
-        val partial = sumsq - sum * avg
-        val test = Stats.getTiming("test")
-        test.get(true) mustEqual
-          new TimingStat(2, Math.MAX_INT, 5, Some(Histogram(5, Math.MAX_INT)), avg, partial)
       }
 
       "handle code blocks" in {
@@ -115,25 +73,6 @@ object StatsSpec extends Specification {
         Stats.getTimingStats(false)("hundred").count mustEqual 1
       }
 
-      "add bundle of timings at once" in {
-        val timingStat = new TimingStat(3, 20, 10, Some(Histogram(10, 15, 20)), 15.0, 50.0)
-        Stats.addTiming("test", timingStat)
-        Stats.addTiming("test", 25)
-        Stats.getTimingStats(false)("test").count mustEqual 4
-        Stats.getTimingStats(false)("test").average mustEqual 17
-        Stats.getTimingStats(false)("test").standardDeviation.toInt mustEqual 6
-      }
-
-      "add multiple bundles of timings" in {
-        val timingStat1 = new TimingStat(2, 25, 15, Some(Histogram(15, 25)), 20.0, 50.0)
-        val timingStat2 = new TimingStat(2, 20, 10, Some(Histogram(10, 20)), 15.0, 50.0)
-        Stats.addTiming("test", timingStat1)
-        Stats.addTiming("test", timingStat2)
-        Stats.getTimingStats(false)("test").count mustEqual 4
-        Stats.getTimingStats(false)("test").average mustEqual 17
-        Stats.getTimingStats(false)("test").standardDeviation.toInt mustEqual 6
-      }
-
       "timing stats can be added and reflected in Stats.getTimingStats" in {
         var x = 0
         Stats.time("hundred") { for (i <- 0 until 100) x += 1 }
@@ -151,20 +90,6 @@ object StatsSpec extends Specification {
         Stats.getTimingStats(false).size mustEqual 1
         Stats.getTimingStats(false)("made_up").count mustEqual 1
         Stats.getTimingStats(false)("made_up").average mustEqual 1
-      }
-
-      "report text in sorted order" in {
-        Stats.addTiming("alpha", new TimingStat(1, 0, 0))
-        Stats.getTimingStats(false)("alpha").toString mustEqual
-          "(average=0, count=1, maximum=0, minimum=0, " +
-          "p25=0, p50=0, p75=0, p90=0, p99=0, p999=0, p9999=0, " +
-          "standard_deviation=0)"
-      }
-
-      "json contains histogram buckets" in {
-        Stats.addTiming("alpha", new TimingStat(1, 0, 0))
-        val json = Stats.getTimingStats(false)("alpha").toJson
-        json mustMatch("\"histogram\":\\[")
       }
     }
 

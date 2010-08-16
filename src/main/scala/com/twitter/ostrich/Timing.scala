@@ -24,7 +24,7 @@ import net.lag.logging.Logger
  * min/max/avg along with how often the event occurred.
  */
 class Timing {
-  val log = Logger.get(getClass.getName)
+  lazy val log = Logger.get(getClass.getName)
 
   private var maximum = Math.MIN_INT
   private var minimum = Math.MAX_INT
