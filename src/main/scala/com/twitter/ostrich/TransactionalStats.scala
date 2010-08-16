@@ -37,12 +37,17 @@ class TransactionalStats(val reporter: StatsReporter) {
    * transaction, and log them as a single line at the end. This is useful for logging everything
    * that happens within an HTTP request/response cycle, or similar.
    */
+  private val tl = new ThreadLocal[ThreadUnsafeStatsCollection]() {
+    override def initialValue() = new ThreadUnsafeStatsCollection(1000)
+  }
+
+  def get = tl.get()
   def transaction[T](f: StatsProvider => T): T = {
-    val entry = new ThreadUnsafeStatsCollection
+    get.clearAll()
     try {
-      f(entry)
+      f(get)
     } finally {
-      reporter.report(entry)
+      reporter.report(get)
     }
   }
 }

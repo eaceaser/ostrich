@@ -90,9 +90,12 @@ class Timing {
    * Returns a TimingStat for the measured event.
    * @param reset whether to erase the current history afterwards
    */
-  def get(reset: Boolean): TimingStat = synchronized {
-    val rv = new TimingStat(count, maximum, minimum, Some(histogram.clone()), mean, partialVariance)
+  def get(reset: Boolean, withHistogram: Boolean): TimingStat = synchronized {
+    val rv = new TimingStat(count, maximum, minimum, if (withHistogram) Some(histogram.clone()) else None, mean, partialVariance)
     if (reset) clear()
     rv
+
   }
+
+  def get(reset: Boolean): TimingStat = get(reset, true)
 }
