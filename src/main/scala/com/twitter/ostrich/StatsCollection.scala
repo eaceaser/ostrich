@@ -96,7 +96,7 @@ class ThreadUnsafeStatsCollection(preallocSize: Int) extends StatsCollection {
     val out = new mutable.HashMap[String, TimingStat]
 
     for ((key, timing) <- timingMap) {
-      out += (key -> timing.get(reset, false))
+      out += (key -> timing.get(reset))
     }
     out
   }
@@ -105,7 +105,7 @@ class ThreadUnsafeStatsCollection(preallocSize: Int) extends StatsCollection {
     timingMap.get(name) match {
       case Some(timing) => timing
       case None =>
-        val timing = new Timing
+        val timing = new Timing(false)
         timingMap += (name -> timing)
         timing
     }
@@ -121,7 +121,13 @@ class ThreadUnsafeStatsCollection(preallocSize: Int) extends StatsCollection {
 
   def getVariable(key: String) = variableMap.getOrElse(key, "")
 
-  def getVariables(reset: Boolean) = variableMap.readOnly
+  def getVariables(reset: Boolean) = {
+    val rv = variableMap.clone.readOnly
+    if (reset) {
+      variableMap.clear
+    }
+    rv
+  }
 
   def clearAll() = {
     counterMap.clear()
@@ -140,9 +146,7 @@ class ThreadUnsafeStatsCollection(preallocSize: Int) extends StatsCollection {
   }
 }
 
-class ThreadSafeStatsCollection(preallocSize: Int) extends StatsCollection {
-  def this() = this(1)
-
+class ThreadSafeStatsCollection extends StatsCollection {
   def getCounterStats(reset: Boolean): Map[String, Long] = {
     val rv = immutable.HashMap(counterMap.map { case (k, v) => (k, v.value.get) }.toList: _*)
     if (reset) {
@@ -201,13 +205,15 @@ class ThreadSafeStatsCollection(preallocSize: Int) extends StatsCollection {
     variableMap.getOrElse(key, "")
   }
 
-  def getVariables(reset: Boolean) = variableMap.synchronized { variableMap.clone.readOnly }
+  def getVariables(reset: Boolean) = variableMap.synchronized { 
+    val rv = variableMap.clone.readOnly
+    if (reset) {
+      variableMap.clear
+    }
+    rv
+  }
 
-  private val counterMap = new mutable.HashMap[String, Counter]() {
-    override def initialSize = preallocSize * 2
-  }
+  private val counterMap = new mutable.HashMap[String, Counter]()
   private val timingMap = new ConcurrentHashMap[String, Timing]()
-  private val variableMap = new mutable.HashMap[String, String]() {
-    override def initialSize = preallocSize * 2
-  }
+  private val variableMap = new mutable.HashMap[String, String]()
 }
