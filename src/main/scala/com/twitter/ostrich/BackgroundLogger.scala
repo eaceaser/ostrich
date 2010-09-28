@@ -17,7 +17,7 @@
 package com.twitter.ostrich
 
 import scala.collection.mutable
-import com.twitter.xrayspecs.Time
+import com.twitter.xrayspecs.{Duration, Time}
 import com.twitter.xrayspecs.TimeConversions._
 import net.lag.logging.Logger
 
@@ -25,32 +25,19 @@ import net.lag.logging.Logger
 /**
  * Log all collected stats as "w3c-style" lines to a java logger at a regular interval.
  */
-class W3CStatsLogger(val logger: Logger, val frequencyInSeconds: Int, includeJvmStats: Boolean) extends BackgroundProcess("W3CStatsLogger") {
-  def this(logger: Logger, frequencyInSeconds: Int) = this(logger, frequencyInSeconds, true)
+class BackgroundStatsLogger(val reporter: StatsReporter, val period: Duration, includeJvmStats: Boolean) 
+  extends PeriodicBackgroundProcess("BackgroundStatsLogger", period) {
+  def this(reporter: StatsReporter, period: Duration) = this(reporter, period, true)
 
   val collection = Stats.fork()
-  val reporter = new W3CReporter(logger, true, false)
-  var nextRun = Time.now + frequencyInSeconds.seconds
-
-  def runLoop() {
-    val delay = (nextRun - Time.now).inMilliseconds
-
-    if (delay > 0) {
-      Thread.sleep(delay)
-    }
-
-    nextRun += frequencyInSeconds.seconds
-    logStats()
-  }
-
-  def logStats() {
+  def periodic() {
     val report = new mutable.HashMap[String, Any]
 
     if (includeJvmStats) {
       Stats.getJvmStats() foreach { case (key, value) => report("jvm_" + key) = value }
     }
 
-    collection.getCounterStats(true) foreach { case (key, value) => report(key) = value }
+/*    collection.getCounterStats(true) foreach { case (key, value) => report(key) = value }
     Stats.getGaugeStats(true) foreach { case (key, value) => report(key) = value }
 
     collection.getTimingStats(true) foreach { case (key, timing) =>
@@ -59,8 +46,8 @@ class W3CStatsLogger(val logger: Logger, val frequencyInSeconds: Int, includeJvm
       report(key + "_max") = timing.maximum
       report(key + "_avg") = timing.average
       report(key + "_std") = timing.standardDeviation
-    }
+    } */
 
-    reporter.report(report)
+    reporter.report(collection)
   }
 }

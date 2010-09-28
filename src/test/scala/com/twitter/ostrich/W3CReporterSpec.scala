@@ -25,9 +25,12 @@ import com.twitter.xrayspecs.TimeConversions._
 import net.lag.extensions._
 import net.lag.logging.{GenericFormatter, Level, Logger, StringHandler}
 import org.specs._
+import org.specs.mock.JMocker
 
 
-class W3CReporterSpec extends Specification {
+class W3CReporterSpec extends Specification with JMocker {
+  noDetailedDiffs()
+
   "W3CReporter" should {
     val logger = Logger.get("w3c")
     logger.setLevel(Level.INFO)
@@ -37,32 +40,48 @@ class W3CReporterSpec extends Specification {
     logger.setUseParentHandlers(false)
 
     var reporter: W3CReporter = null
+    val collection = mock[StatsCollection]
 
     def expectedHeader(crc: Long) = "w3c: #Version: 1.0" :: "w3c: #Date: 03-Aug-2009 19:23:04" :: ("w3c: #CRC: " + crc) :: Nil
 
     doBefore {
-      Stats.clearAll()
       handler.clear()
       Time.now = Time.at("2009-08-03 19:23:04 +0000")
-      reporter = new W3CReporter(logger, true, false)
+      reporter = new W3CReporter(logger, Seq(), true, false)
     }
 
     "log basic stats" in {
-      reporter.report(Map("cats" -> 10, "dogs" -> 9))
+      expect {
+        one(collection).toMap willReturn Map("cats" -> 10, "dogs" -> 9)
+      }
+
+      reporter.setColumns(Seq("cats", "dogs"))
+      reporter.report(collection)
       handler.toString.split("\n").toList mustEqual
         expectedHeader(948200938) ::: "w3c: #Fields: cats dogs" :: "w3c: 10 9" :: Nil
     }
 
     "convert values appropriately" in {
-      reporter.report(Map("date" -> new Date(0), "size" -> (1L << 32), "address" -> InetAddress.getByName("127.0.0.1"), "x" -> new Object))
+      expect {
+        one(collection).toMap willReturn Map("date" -> new Date(0), "size" -> (1L << 32), "address" -> InetAddress.getByName("127.0.0.1"), "x" -> new Object)
+      }
+
+      reporter.setColumns(Seq("address", "date", "size", "x"))
+      reporter.report(collection)
       handler.toString.split("\n").last mustEqual "w3c: 127.0.0.1 01-Jan-1970_00:00:00 4294967296 -"
     }
 
     "not repeat the header too often" in {
-      reporter.report(Map("a" -> 1))
-      reporter.report(Map("a" -> 2))
+      expect {
+        one(collection).toMap willReturn Map("a" -> 1)
+        one(collection).toMap willReturn Map("a" -> 2)
+        one(collection).toMap willReturn Map("a" -> 3)
+      }
+      reporter.setColumns(Seq("a"))
+      reporter.report(collection)
+      reporter.report(collection)
       reporter.nextHeaderDumpAt = Time.now
-      reporter.report(Map("a" -> 3))
+      reporter.report(collection)
       handler.toString.split("\n").toList mustEqual
         expectedHeader(276919822) :::
         "w3c: #Fields: a" ::
@@ -74,9 +93,16 @@ class W3CReporterSpec extends Specification {
     }
 
     "repeat the header when the fields change" in {
-      reporter.report(Map("a" -> 1))
-      reporter.report(Map("a" -> 2))
-      reporter.report(Map("a" -> 3, "b" -> 1))
+      expect {
+        one(collection).toMap willReturn Map("a" -> 1)
+        one(collection).toMap willReturn Map("a" -> 2)
+        one(collection).toMap willReturn Map("a" -> 3, "b" ->1)
+      }
+      reporter.setColumns(Seq("a"))
+      reporter.report(collection)
+      reporter.report(collection)
+      reporter.setColumns(Seq("a", "b"))
+      reporter.report(collection)
       handler.toString.split("\n").toList mustEqual
         expectedHeader(276919822) :::
         "w3c: #Fields: a" ::
@@ -88,10 +114,13 @@ class W3CReporterSpec extends Specification {
     }
 
     "per line crc printing"  >> {
-      val crcReporter = new W3CReporter(logger, true, true)
+      val crcReporter = new W3CReporter(logger, Seq("a", "b"), true, true)
 
       "should print" in {
-        crcReporter.report(Map("a" -> 3, "b" -> 1))
+        expect {
+          one(collection).toMap willReturn Map("a" -> 3, "b" -> 1)
+        }
+        crcReporter.report(collection)
         handler.toString.split("\n").toList mustEqual
           expectedHeader(1342496559) :::
           "w3c: #Fields: a b" ::
@@ -99,8 +128,14 @@ class W3CReporterSpec extends Specification {
       }
 
       "changes appropriately when column headers change" in {
-        crcReporter.report(Map("a" -> 1))
-        crcReporter.report(Map("a" -> 3, "b" -> 1))
+        expect {
+          one(collection).toMap willReturn Map("a" -> 1)
+          one(collection).toMap willReturn Map("a" -> 3, "b" -> 1)
+        }
+        crcReporter.setColumns(Seq("a"))
+        crcReporter.report(collection)
+        crcReporter.setColumns(Seq("a", "b"))
+        crcReporter.report(collection)
         handler.toString.split("\n").toList mustEqual
           expectedHeader(276919822) :::
           "w3c: #Fields: a" ::

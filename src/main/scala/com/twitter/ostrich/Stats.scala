@@ -21,15 +21,12 @@ import java.util.concurrent.atomic.AtomicLong
 import scala.collection.{Map, mutable, immutable}
 import com.twitter.json.Json
 import com.twitter.xrayspecs.Time
-import net.lag.logging.Logger
 
 
 /**
  * Basic StatsProvider gathering object that returns performance data for the application.
  */
 object Stats extends StatsProvider {
-  val log = Logger.get(getClass.getName)
-
   /**
    * A gauge has an instantaneous value (like memory usage) and is polled whenever stats
    * are collected.
@@ -39,7 +36,7 @@ object Stats extends StatsProvider {
   private val gaugeMap = new mutable.HashMap[String, Gauge]()
   private val timingSourceList = new mutable.ListBuffer[() => Map[String, TimingStat]]()
 
-  private val collection = new StatsCollection
+  private val collection = new ThreadSafeStatsCollection
   private val forkedCollections = new mutable.ListBuffer[StatsCollection]
 
   def addTiming(name: String, duration: Int): Long = {
@@ -94,6 +91,11 @@ object Stats extends StatsProvider {
     timingSourceList.clear()
   }
 
+  def clearVariable(key: String) = collection.clearVariable(key)
+  def putVariable(key: String, value: String) = collection.putVariable(key, value)
+  def getVariable(key: String) = collection.getVariable(key)
+  def getVariables(reset: Boolean) = collection.getVariables(reset)
+
   /**
    * Fork a StatsCollection (of counters and timings) off the main `Stats` object and return it.
    * The new collection will be updated whenever the primary `Stats` object is, but calls to
@@ -102,8 +104,8 @@ object Stats extends StatsProvider {
    *
    * This method is not thread-safe. Create forked collections before going multi-threaded.
    */
-  def fork(): StatsCollection = {
-    val x = new StatsCollection
+  def fork(): StatsProvider = {
+    val x = new ThreadSafeStatsCollection
     forkedCollections += x
     x
   }
@@ -147,33 +149,6 @@ object Stats extends StatsProvider {
     }
   }
 
-  /**
-   * Returns how long it took, in milliseconds, to run the function f.
-   */
-  def duration[T](f: => T): (T, Long) = {
-    val start = Time.now
-    val rv = f
-    val duration = Time.now - start
-    (rv, duration.inMilliseconds)
-  }
-
-  /**
-   * Returns how long it took, in microseconds, to run the function f.
-   */
-  def durationMicros[T](f: => T): (T, Long) = {
-    val (rv, duration) = durationNanos(f)
-    (rv, duration / 1000)
-  }
-
-  /**
-   * Returns how long it took, in nanoseconds, to run the function f.
-   */
-  def durationNanos[T](f: => T): (T, Long) = {
-    val start = System.nanoTime
-    val rv = f
-    val duration = System.nanoTime - start
-    (rv, duration)
-  }
 
   /**
    * Returns a Map[String, Long] of JVM stats.

@@ -1,6 +1,6 @@
 package com.twitter.ostrich.stress
 
-import com.twitter.ostrich.W3CStats
+import com.twitter.ostrich.TransactionalStats
 import net.lag.logging.{Formatter, Level, Logger, StringHandler}
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -25,12 +25,12 @@ object W3CStresser {
     val thousandInts = (1 until 1000).toArray
     val thousandColumns = thousandInts.map { x: Int => x.toString }
     val hundredThousand = (1 until 100000).toArray
-    val w3c = new W3CStats(logger, thousandColumns)
+    val w3c = new TransactionalStats(new W3CReporter(logger, thousandColumns))
 
     println("%s Starting to stress our W3C deals".format(new Date()))
     hundredThousand.foreach { i =>
       if (i % 10000 == 0) { println("%s finished our %d'th run".format(new Date(), i)) }
-      w3c.transaction {
+      w3c.transaction { w3c =>
         thousandInts.foreach { j => w3c.addTiming(j.toString, j) }
       }
       handler.clear() // based on our testing, this does not add substantial CPU pressure but reduces memory needs for the test.

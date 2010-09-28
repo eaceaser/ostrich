@@ -17,28 +17,25 @@
 package com.twitter.ostrich
 
 import net.lag.extensions._
-import net.lag.logging.{Formatter, Level, Logger, StringHandler}
+import net.lag.logging.{BareFormatter, Level, Logger, StringHandler}
 import org.specs._
 import scala.collection.immutable
 import java.text.SimpleDateFormat
 import java.util.Date
 
+/*
 
 object W3CEntrySpec extends Specification {
   "w3c entries" should {
     val logger = Logger.get("w3c")
     logger.setLevel(Level.INFO)
-    val formatter = new Formatter {
-      override def lineTerminator = ""
-      override def dateFormat = new SimpleDateFormat("yyyyMMdd-HH:mm:ss.SSS")
-      override def formatPrefix(level: java.util.logging.Level, date: String, name: String) = ""
-    }
-
-    val handler = new StringHandler(formatter)
+    val handler = new StringHandler(BareFormatter)
     logger.addHandler(handler)
     logger.setUseParentHandlers(false)
 
-    val w3c = new W3CEntry(logger, Array("backend-response-time", "backend-response-method", "request-uri", "backend-response-time_ns", "unsupplied-field", "finish_timestamp", "widgets", "wodgets"))
+    val w3c = new W3CEntry(new W3CReporter(logger), Array("backend-response-time", "backend-response-method", "request-uri", "backend-response-time_ns", "unsupplied-field", "finish_timestamp", "widgets", "wodgets"))
+
+    def getFirstLine() = handler.toString.split("\n").toList.filter(!_.startsWith("#")).first
 
     doBefore {
       Stats.clearAll()
@@ -47,6 +44,22 @@ object W3CEntrySpec extends Specification {
 
     "starts life with an empty map" in {
       w3c.map.size mustEqual 0
+    }
+
+    "map when cleared returns the empty string" in {
+      w3c.log("request-uri", "foo")
+      w3c.clearAll()
+      val logline = getFirstLine()
+      // strip out all unfound entries, and remove all whitespace. after that, it should be empty.
+      logline.replaceAll("-", "").trim() mustEqual ""
+      false
+    }
+
+    "logging a field not tracked in the fields member shouldn't show up in the logfile" in {
+      w3c.log("jibberish_nonsense", "foo")
+      val logline = getFirstLine()
+      logline must notInclude("foo")
+      false
     }
 
     "log and check a single timing" in {
@@ -62,7 +75,7 @@ object W3CEntrySpec extends Specification {
       handler.clear()
 
       w3c.flush
-      handler.toString() mustNot beMatching("57")
+      getFirstLine() mustNot beMatching("57")
     }
 
     "incr works with positive and negative numbers" in {
@@ -73,33 +86,33 @@ object W3CEntrySpec extends Specification {
       w3c.incr("widgets", -1)
       w3c.flush
 
-      handler.toString() must endWith("0 2")
+      getFirstLine() must endWith("0 2")
     }
 
     "works with Strings" in {
       w3c.log("backend-response-time", "57")
       w3c.flush
-      handler.toString must beMatching("57")
+      getFirstLine() must beMatching("57")
     }
 
     "rejects a column that isn't registered" in {
       w3c.incr("whatwhatlol", 100)
-      handler.toString() mustNot beMatching("100")
+      getFirstLine() mustNot beMatching("100")
     }
 
     "start and end Timing" in {
       "flushing before ending a timing means it doesn't get logged" in {
         w3c.startTiming("backend-response-time")
         w3c.flush
-        handler.toString() must startWith("- ")
+        getFirstLine() must startWith("- ")
       }
 
       "end" in {
         w3c.startTiming("backend-response-time")
         w3c.endTiming("backend-response-time")
         w3c.flush
-        handler.toString() mustNot startWith("- ")
+        getFirstLine() mustNot startWith("- ")
       }
     }
   }
-}
+} */

@@ -23,13 +23,15 @@ import net.lag.logging.Logger
  * A Timing collates durations of an event and can report
  * min/max/avg along with how often the event occurred.
  */
-class Timing {
-  val log = Logger.get(getClass.getName)
+class Timing(useHistogram: Boolean) {
+  def this() = this(true)
+
+  lazy val log = Logger.get(getClass.getName)
 
   private var maximum = Math.MIN_INT
   private var minimum = Math.MAX_INT
   private var count: Int = 0
-  private var histogram = new Histogram()
+  private var histogram = if (useHistogram) Some(new Histogram()) else None
   private var mean: Double = 0.0
   private var partialVariance: Double = 0.0
 
@@ -40,7 +42,7 @@ class Timing {
     maximum = Math.MIN_INT
     minimum = Math.MAX_INT
     count = 0
-    histogram.clear()
+    histogram.foreach(_.clear())
   }
 
   /**
@@ -51,7 +53,7 @@ class Timing {
       maximum = n max maximum
       minimum = n min minimum
       count += 1
-      histogram.add(n)
+      histogram.foreach(_.add(n))
       if (count == 1) {
         mean = n
         partialVariance = 0.0
@@ -81,7 +83,7 @@ class Timing {
       count += timingStat.count
       maximum = timingStat.maximum max maximum
       minimum = timingStat.minimum min minimum
-      timingStat.histogram.map { h => histogram.merge(h) }
+      histogram.foreach(local => timingStat.histogram.foreach { h => local.merge(h) })
     }
     count
   }
@@ -91,8 +93,9 @@ class Timing {
    * @param reset whether to erase the current history afterwards
    */
   def get(reset: Boolean): TimingStat = synchronized {
-    val rv = new TimingStat(count, maximum, minimum, Some(histogram.clone()), mean, partialVariance)
+    val rv = new TimingStat(count, maximum, minimum, histogram.map(_.clone()), mean, partialVariance)
     if (reset) clear()
     rv
+
   }
 }

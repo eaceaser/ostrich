@@ -38,11 +38,12 @@ object W3CReporter {
  * `report`, if the keys in the map have changed, or it's been "a while" since the header was
  * last logged, the header is logged again.
  */
-class W3CReporter(val logger: Logger, val printHeader: Boolean, val printCrc: Boolean) {
+class W3CReporter(logger: Logger, private var keys: Iterable[String], printHeader: Boolean, printCrc: Boolean) extends StatsReporter {
   import W3CReporter._
+  private def fieldsHeader = keys.mkString("#Fields: ", " ", "")
 
-  def this(logger: Logger, printCrc: Boolean) = this(logger, false, true)
-  def this(logger: Logger) = this(logger, false, false)
+  def this(logger: Logger, keys: Iterable[String]) = this(logger, keys, false, false)
+  def this(logger: Logger, keys: Iterable[String], printHeader: Boolean) = this(logger, keys, printHeader, false)
 
   /**
    * The W3C header lines will be written out this often, even if the fields haven't changed.
@@ -52,32 +53,33 @@ class W3CReporter(val logger: Logger, val printHeader: Boolean, val printCrc: Bo
 
   var nextHeaderDumpAt = Time.now
 
+  private var crc = crc32(fieldsHeader)
   private var previousCrc = 0L
+
+  def setColumns(cols: Iterable[String]) {
+    keys = cols
+    crc = crc32(fieldsHeader)
+  }
 
   /**
    * Write a W3C stats line to the log. If the field names differ from the previously-logged line,
    * a new header block will be written.
    */
-  def report(stats: Map[String, Any]) {
-    val orderedKeys = stats.keys.toList.sort(_ < _)
-    report(orderedKeys, stats)
-  }
-
-  def report(orderedKeys: Iterable[String], stats: Map[String, Any]) = {
-    val fieldsHeader = orderedKeys.mkString("#Fields: ", " ", "")
-    val crc = crc32(fieldsHeader)
+  def report(stats: StatsProvider) {
+//    val fieldsHeader = keys.mkString("#Fields: ", " ", "")
+//    val crc = crc32(fieldsHeader)
 
     if (printHeader && (crc != previousCrc || Time.now >= nextHeaderDumpAt)) {
       logHeader(fieldsHeader, crc)
+      previousCrc = crc
     }
 
-    previousCrc = crc
-    logger.info(generateLine(orderedKeys, stats))
+    logger.info(generateLine(keys, stats.toMap))
   }
 
-  private def generateLine(orderedKeys: Iterable[String], stats: Map[String, Any]) = {
-    val rv = orderedKeys.map { key => stats.get(key).map { stringify(_) }.getOrElse("-") }.mkString(" ")
-    if (printCrc) previousCrc + " " + rv else rv
+  private def generateLine(keys: Iterable[String], stats: Map[String, Any]) = {
+    val rv = keys.map { key => stats.get(key).map { stringify(_) }.getOrElse("-") }.mkString(" ")
+    if (printCrc) crc + " " + rv else rv
   }
 
   private def logHeader(fieldsHeader: String, crc: Long) {
@@ -86,7 +88,7 @@ class W3CReporter(val logger: Logger, val printHeader: Boolean, val printCrc: Bo
             "#Date: ", formatter.format(new Date(Time.now.inMilliseconds)), "\n",
             "#CRC: ", crc.toString, "\n",
             fieldsHeader, "\n").mkString("")
-    if (printHeader) logger.info(header)
+    logger.info(header)
     nextHeaderDumpAt = headerRepeatFrequencyInMilliseconds.milliseconds.fromNow
   }
 
@@ -97,7 +99,7 @@ class W3CReporter(val logger: Logger, val printHeader: Boolean, val printCrc: Bo
   }
 
   private def stringify(value: Any): String = value match {
-    case s: String => s
+    case s: String => s.replaceAll(" ", "_")
     case d: Date => formatter.format(d).replaceAll(" ", "_")
     case l: Long => l.toString()
     case i: Int => i.toString()
